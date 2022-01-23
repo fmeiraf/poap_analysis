@@ -56,7 +56,7 @@ class PoapScrapper:
             type(self.poap_contract_xdai.functions.name().call()) == str
         ), "Problem initializing POAP xdai contract."
 
-    def get_token_data(self, page_size: int = 100):
+    def get_token_data(self, page_size: int = 900):
         """
         Get all the tokens from both chains using graphql
 
