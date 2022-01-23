@@ -1,7 +1,10 @@
 import pandas as pd
 from web3 import Web3
+import requests
 import yaml
 import os
+import json
+import utils
 
 
 class PoapScrapper:
@@ -17,11 +20,17 @@ class PoapScrapper:
         self.poap_contract_addrress = poap_contract_address
 
     def set_endpoints(self):
+        """
+        Set the RPC endpoints for queries
+        """
         self.w3e = Web3(Web3.HTTPProvider(self.eth_rpc_url))
         self.w3x = Web3(Web3.HTTPProvider(self.xdai_rpc_url))
         return self.w3e.isConnected() and self.w3x.isConnected()
 
     def set_contracts(self):
+        """
+        Initialize both contracts (ethereum and xDai)
+        """
         abi_path = os.path.join(os.getcwd(), "data_gather/poap_abi.json")
         if not os.path.exists(abi_path):
             raise OSError(
@@ -48,7 +57,50 @@ class PoapScrapper:
         ), "Problem initializing POAP xdai contract."
 
     def get_token_data(self, page_size: int = 100):
-        return ""
+        """
+        Get all the tokens from both chains using graphql
+
+        @page_size = number of records per query
+        """
+        eth_subgraph = "https://api.thegraph.com/subgraphs/name/poap-xyz/poap"
+        xdai_subgraph = "https://api.thegraph.com/subgraphs/name/poap-xyz/poap-xdai"
+
+        query = """
+            query get_token($last_token: Int, $page_size: Int) {
+                tokens (first: $page_size, 
+                        orderBy:id,
+                        orderDirection: asc,
+                        where: {id_gt: $last_token}) 
+                {
+                    id
+                    owner{
+                        id
+                    }
+                    event {
+                        id
+                        tokenCount
+                        created
+                        transferCount
+                    }
+                    created
+                    transferCount
+                }
+            }
+        """
+        print("Getting ethereum mainnet subgraph data.")
+        self.eth_token_data = utils.extract_all_tokens_from_subgraph(
+            query=query,
+            subgraph_api_url=eth_subgraph,
+            page_size=page_size,
+        )
+
+        print("Getting xdai subgraph data.")
+        self.xdai_token_data = utils.extract_all_tokens_from_subgraph(
+            query=query,
+            subgraph_api_url=xdai_subgraph,
+            page_size=page_size,
+            verbose=True,
+        )
 
 
 def main():
@@ -68,7 +120,6 @@ def main():
     poap_address = "0x22C1f6050E56d2876009903609a2cC3fEf83B415"
 
     # initializing the class and the set methods
-
     scrapper = PoapScrapper(
         eth_rpc_url=eth_provider_url,
         xdai_rpc_url=xdai_rpc_link,
@@ -78,10 +129,12 @@ def main():
     if not scrapper.set_endpoints():
         raise ValueError("There was some proble with RPC endpoint initialization.")
 
-    # print(scrapper.set_contracts())
     scrapper.set_contracts()
+
+    # calling getter methods
+
+    scrapper.get_token_data()
 
 
 if __name__ == "__main__":
-    ##initialization
     main()
