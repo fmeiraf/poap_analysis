@@ -123,7 +123,7 @@ def fetch_events(
         yield data
 
 
-def fetch_log_history(web3_provider: web3.Web3, contract: web3.contract):
+def fetch_log_history(contract: web3.contract):
     """Fetch all trading pairs on Uniswap"""
     events = list(fetch_events(contract.events.EventMinterAdded, from_block=0))
     print("Got all event history.", len(events), "events")
