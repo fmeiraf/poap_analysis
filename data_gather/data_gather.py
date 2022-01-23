@@ -16,6 +16,12 @@ class PoapScrapper:
         self.xdai_rpc_url = xdai_rpc_url
         self.poap_contract_addrress = poap_contract_address
 
+    def set_endpoints(self):
+        self.w3e = Web3(Web3.HTTPProvider(self.eth_rpc_url))
+        self.w3x = Web3(Web3.HTTPProvider(self.xdai_rpc_url))
+        return self.w3e.isConnected() and self.w3x.isConnected()
+
+    def set_contracts(self):
         abi_path = os.path.join(os.getcwd(), "data_gather/poap_abi.json")
         if not os.path.exists(abi_path):
             raise OSError(
@@ -26,15 +32,28 @@ class PoapScrapper:
             abi = file.read()
         self.poap_abi = abi
 
-        self.w3e = Web3(Web3.HTTPProvider(self.eth_rpc_url))
-        self.w3x = Web3(Web3.HTTPProvider(self.xdai_rpc_url))
+        # POAP contract happens to have the same address in both chains..
+        self.poap_contract_eth = self.w3e.eth.contract(
+            address=self.poap_contract_addrress, abi=abi
+        )
+        self.poap_contract_xdai = self.w3x.eth.contract(
+            address=self.poap_contract_addrress, abi=abi
+        )
 
-    def check_rpc_connection(self):
-        return self.w3e.isConnected() and self.w3x.isConnected()
+        assert (
+            type(self.poap_contract_eth.functions.name().call()) == str
+        ), "Problem initializing POAP eth contract."
+        assert (
+            type(self.poap_contract_xdai.functions.name().call()) == str
+        ), "Problem initializing POAP xdai contract."
+
+    def get_token_data(self, page_size: int = 100):
+        return ""
 
 
-if __name__ == "__main__":
-    ##initialization
+def main():
+
+    # getting RPC links and API keys
     eth_yaml_path = os.path.join(os.getcwd(), "eth_rpc.yaml")
     if not os.path.exists(eth_yaml_path):
         raise OSError(
@@ -48,10 +67,21 @@ if __name__ == "__main__":
     xdai_rpc_link = "https://rpc.gnosischain.com/"
     poap_address = "0x22C1f6050E56d2876009903609a2cC3fEf83B415"
 
+    # initializing the class and the set methods
+
     scrapper = PoapScrapper(
         eth_rpc_url=eth_provider_url,
         xdai_rpc_url=xdai_rpc_link,
         poap_contract_address=poap_address,
     )
 
-    print(scrapper.check_rpc_connection())
+    if not scrapper.set_endpoints():
+        raise ValueError("There was some proble with RPC endpoint initialization.")
+
+    # print(scrapper.set_contracts())
+    scrapper.set_contracts()
+
+
+if __name__ == "__main__":
+    ##initialization
+    main()
