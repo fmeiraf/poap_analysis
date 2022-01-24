@@ -19,42 +19,46 @@ class PoapScrapper:
         self.xdai_rpc_url = xdai_rpc_url
         self.poap_contract_addrress = poap_contract_address
 
-    def set_endpoints(self):
-        """
-        Set the RPC endpoints for queries
-        """
-        self.w3e = Web3(Web3.HTTPProvider(self.eth_rpc_url))
-        self.w3x = Web3(Web3.HTTPProvider(self.xdai_rpc_url))
-        return self.w3e.isConnected() and self.w3x.isConnected()
+    def parse(self):
+        print(" ### Starting POAP data gathering..(might take some time)  ### \n")
+        # calling setters
 
-    def set_contracts(self):
-        """
-        Initialize both contracts (ethereum and xDai)
-        """
-        abi_path = os.path.join(os.getcwd(), "data_gather/poap_abi.json")
-        if not os.path.exists(abi_path):
-            raise OSError(
-                "You should have a the abi json file with this path > data_gather/poap_abi.json"
-            )
+        ## Thought I would need to query contracts, but in didn't need ##
+        ## will leave it here though until I get certain. ##
 
-        with open(abi_path, "r") as file:
-            abi = file.read()
-        self.poap_abi = abi
+        # if not self.set_endpoints():
+        #     raise ValueError("There was a problem setting the endpoints")
 
-        # POAP contract happens to have the same address in both chains..
-        self.poap_contract_eth = self.w3e.eth.contract(
-            address=self.poap_contract_addrress, abi=abi
+        # self.set_contracts()
+
+        # calling getters and storing in memory
+
+        self.get_token_data()
+        self.get_event_data()
+
+        # saving files as json on (root)/analysis/
+
+        print("Saving files on (root)/analysis..")
+
+        eth_file_destiny_path = os.path.join(
+            os.getcwd(), "analysis/datasets/ethereum_token_data.json"
         )
-        self.poap_contract_xdai = self.w3x.eth.contract(
-            address=self.poap_contract_addrress, abi=abi
-        )
+        with open(eth_file_destiny_path, "w") as outfile:
+            json.dump(self.eth_token_data, outfile)
 
-        assert (
-            type(self.poap_contract_eth.functions.name().call()) == str
-        ), "Problem initializing POAP eth contract."
-        assert (
-            type(self.poap_contract_xdai.functions.name().call()) == str
-        ), "Problem initializing POAP xdai contract."
+        xdai_file_destiny_path = os.path.join(
+            os.getcwd(), "analysis/datasets/xdai_token_data.json"
+        )
+        with open(xdai_file_destiny_path, "w") as outfile:
+            json.dump(self.xdai_token_data, outfile)
+
+        events_file_destiny_path = os.path.join(
+            os.getcwd(), "analysis/datasets/event_data.json"
+        )
+        with open(events_file_destiny_path, "w") as outfile:
+            json.dump(self.event_data, outfile)
+
+        print("Done. :)")
 
     def get_token_data(self, page_size: int = 900):
         """
@@ -102,6 +106,66 @@ class PoapScrapper:
             verbose=True,
         )
 
+    def get_event_data(self):
+        print("Getting event data..")
+        poap_event_api_url = "https://api.poap.xyz/events"
+        req = requests.get(poap_event_api_url)
+
+        if req.status_code != 200:
+            raise ValueError("There was a problem with your request to POAP API. ")
+
+        j = json.loads(req.text)
+
+        self.event_data = j
+
+        print("Finished gathering event data. \n")
+
+    # Thought I would need to query contracts, in the end
+    # it was not necessary, but will leave it here.
+    def set_endpoints(self):
+        """
+        Set the RPC endpoints for queries
+        """
+        self.w3e = Web3(Web3.HTTPProvider(self.eth_rpc_url))
+        self.w3x = Web3(Web3.HTTPProvider(self.xdai_rpc_url))
+        return self.w3e.isConnected() and self.w3x.isConnected()
+
+    # Thought I would need to query contracts, in the end
+    # it was not necessary, but will leave it here.
+    def set_contracts(self):
+        """
+        Initialize both contracts (ethereum and xDai)
+        """
+        abi_path = os.path.join(os.getcwd(), "data_gather/poap_abi.json")
+        if not os.path.exists(abi_path):
+            raise OSError(
+                "You should have a the abi json file with this path > data_gather/poap_abi.json"
+            )
+
+        with open(abi_path, "r") as file:
+            abi = file.read()
+        self.poap_abi = abi
+
+        # POAP contract happens to have the same address in both chains..
+        self.poap_contract_eth = self.w3e.eth.contract(
+            address=self.poap_contract_addrress, abi=abi
+        )
+        self.poap_contract_xdai = self.w3x.eth.contract(
+            address=self.poap_contract_addrress, abi=abi
+        )
+
+        assert (
+            type(self.poap_contract_eth.functions.name().call()) == str
+        ), "Problem initializing POAP eth contract."
+        assert (
+            type(self.poap_contract_xdai.functions.name().call()) == str
+        ), "Problem initializing POAP xdai contract."
+
+    # Thought I would need to query contracts, in the end
+    # it was not necessary, but will leave it here.
+    def get_event_emitter_logs(self):
+        print(utils.fetch_log_history(self.poap_contract_xdai))
+
 
 def main():
 
@@ -119,21 +183,14 @@ def main():
     xdai_rpc_link = "https://rpc.gnosischain.com/"
     poap_address = "0x22C1f6050E56d2876009903609a2cC3fEf83B415"
 
-    # initializing the class and the set methods
+    # initializing the class and calling parse
     scrapper = PoapScrapper(
         eth_rpc_url=eth_provider_url,
         xdai_rpc_url=xdai_rpc_link,
         poap_contract_address=poap_address,
     )
 
-    if not scrapper.set_endpoints():
-        raise ValueError("There was some proble with RPC endpoint initialization.")
-
-    scrapper.set_contracts()
-
-    # calling getter methods
-
-    scrapper.get_token_data()
+    scrapper.parse()
 
 
 if __name__ == "__main__":
