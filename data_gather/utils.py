@@ -58,7 +58,7 @@ def extract_all_tokens_from_subgraph(
         j = json.loads(req.text)
 
         if not j["data"]["tokens"]:
-            print("Subgraph extraction is DONE.")
+            print("Subgraph extraction is DONE. \n")
             return extracted_data
 
         for token_data in j["data"]["tokens"]:
