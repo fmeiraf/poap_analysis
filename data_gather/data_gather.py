@@ -29,13 +29,10 @@ class PoapScrapper:
         print(" ### Starting POAP data gathering..(might take some time)  ### \n")
         # calling setters
 
-        ## Thought I would need to query contracts, but in didn't need ##
-        ## will leave it here though until I get certain. ##
+        if not self.set_endpoints():
+            raise ValueError("There was a problem setting the endpoints")
 
-        # if not self.set_endpoints():
-        #     raise ValueError("There was a problem setting the endpoints")
-
-        # self.set_contracts()
+        self.set_all_contracts()
 
         # calling getters and storing in memory
 
@@ -134,32 +131,36 @@ class PoapScrapper:
         print("Finished gathering event data. \n")
 
     def get_spork_token_holders(self):
-        token_balances = {}
+        all_balances = []
 
         transfer_logs = utils.fetch_erc20_transfer_logs(self.spork_token_contract)
         zerox = "0x0000000000000000000000000000000000000000"
 
         checked_addresses = []
         for transfer in transfer_logs:
+            token_balances = {}
             if transfer["from"] != zerox and transfer["from"] not in checked_addresses:
                 balance = self.spork_token_contract.functions.balanceOf(
                     transfer["from"]
                 ).call()
-                token_balances[transfer["from"]] = balance
+
+                token_balances["token_holder_address"] = transfer["from"]
+                token_balances["token_holder_balance"] = balance
+                all_balances.append(token_balances)
                 checked_addresses.append(transfer["from"])
             if transfer["to"] != zerox and transfer["to"] not in checked_addresses:
                 balance = self.spork_token_contract.functions.balanceOf(
                     transfer["to"]
                 ).call()
-                token_balances[transfer["to"]] = balance
+
+                token_balances["token_holder_address"] = transfer["to"]
+                token_balances["token_holder_balance"] = balance
                 checked_addresses.append(transfer["to"])
 
-        self.spork_token_balances = token_balances
+        self.spork_token_balances = all_balances
 
         return token_balances
 
-    # Thought I would need to query contracts, in the end
-    # it was not necessary, but will leave it here.
     def set_endpoints(self):
         """
         Set the RPC endpoints for queries
@@ -191,8 +192,6 @@ class PoapScrapper:
 
         return contract_instance
 
-    # Thought I would need to query contracts, in the end
-    # it was not necessary, but will leave it here.
     def set_all_contracts(self):
         """
         Initialize both contracts (ethereum and xDai)
@@ -225,6 +224,10 @@ class PoapScrapper:
         assert (
             type(self.poap_contract_xdai.functions.name().call()) == str
         ), "Problem initializing POAP xdai contract."
+
+        assert (
+            type(self.spork_token_contract.functions.symbol().call()) == str
+        ), "Problem initializing SPORK token contract."
 
     # Thought I would need to query contracts, in the end
     # it was not necessary, but will leave it here.
@@ -260,11 +263,7 @@ def main():
         spork_token_address=spork_address,
     )
 
-    scrapper.set_endpoints()
-    scrapper.set_all_contracts()
-    print(scrapper.get_spork_token_holders())
-
-    # scrapper.parse()
+    scrapper.parse()
 
 
 if __name__ == "__main__":
