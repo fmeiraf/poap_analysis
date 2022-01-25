@@ -12,12 +12,16 @@ class PoapScrapper:
         self,
         eth_rpc_url: str,
         xdai_rpc_url: str,
+        polygon_rpc_url: str,
         poap_contract_address: str,
+        spork_token_address: str,
     ):
 
         self.eth_rpc_url = eth_rpc_url
         self.xdai_rpc_url = xdai_rpc_url
+        self.polygon_rpc_url = polygon_rpc_url
         self.poap_contract_addrress = poap_contract_address
+        self.spork_token_address = spork_token_address
 
     def parse(self):
         print(" ### Starting POAP data gathering..(might take some time)  ### \n")
@@ -128,30 +132,57 @@ class PoapScrapper:
         """
         self.w3e = Web3(Web3.HTTPProvider(self.eth_rpc_url))
         self.w3x = Web3(Web3.HTTPProvider(self.xdai_rpc_url))
-        return self.w3e.isConnected() and self.w3x.isConnected()
+        self.w3p = Web3(Web3.HTTPProvider(self.polygon_rpc_url))
+        return (
+            self.w3e.isConnected() and self.w3x.isConnected() and self.w3p.isConnected()
+        )
 
-    # Thought I would need to query contracts, in the end
-    # it was not necessary, but will leave it here.
-    def set_contracts(self):
+    def create_contract_instance(
+        self, web3_provider: Web3, contract_address: str, abi_path: str
+    ):
         """
-        Initialize both contracts (ethereum and xDai)
+        Instantiate one contract
         """
-        abi_path = os.path.join(os.getcwd(), "data_gather/poap_abi.json")
+
         if not os.path.exists(abi_path):
             raise OSError(
                 "You should have a the abi json file with this path > data_gather/poap_abi.json"
             )
-
         with open(abi_path, "r") as file:
             abi = file.read()
-        self.poap_abi = abi
+
+        contract_instance = web3_provider.eth.contract(
+            address=contract_address, abi=abi
+        )
+
+        return contract_instance
+
+    # Thought I would need to query contracts, in the end
+    # it was not necessary, but will leave it here.
+    def set_all_contracts(self):
+        """
+        Initialize both contracts (ethereum and xDai)
+        """
+        poap_abi_path = os.path.join(os.getcwd(), "data_gather/abi/poap_abi.json")
+        erc20_abi_path = os.path.join(os.getcwd(), "data_gather/abi/erc20_abi.json")
 
         # POAP contract happens to have the same address in both chains..
-        self.poap_contract_eth = self.w3e.eth.contract(
-            address=self.poap_contract_addrress, abi=abi
+        self.poap_contract_eth = self.create_contract_instance(
+            web3_provider=self.w3e,
+            contract_address=self.poap_contract_addrress,
+            abi_path=poap_abi_path,
         )
-        self.poap_contract_xdai = self.w3x.eth.contract(
-            address=self.poap_contract_addrress, abi=abi
+
+        self.poap_contract_xdai = self.create_contract_instance(
+            web3_provider=self.w3x,
+            contract_address=self.poap_contract_addrress,
+            abi_path=poap_abi_path,
+        )
+
+        self.spork_token_contract = self.create_contract_instance(
+            web3_provider=self.w3p,
+            contract_address=self.spork_token_address,
+            abi_path=erc20_abi_path,
         )
 
         assert (
@@ -160,6 +191,9 @@ class PoapScrapper:
         assert (
             type(self.poap_contract_xdai.functions.name().call()) == str
         ), "Problem initializing POAP xdai contract."
+
+    def get_spork_token_holders(self):
+        print(self.spork_token_contract.functions.symbol().call())
 
     # Thought I would need to query contracts, in the end
     # it was not necessary, but will leave it here.
@@ -178,19 +212,28 @@ def main():
 
     with open(eth_yaml_path) as file:
         provider_params = yaml.load(file, Loader=yaml.FullLoader)
-    eth_provider_url = provider_params["key"]
+
+    eth_provider_url = provider_params["ethereum"]
+    polygon_provider_url = provider_params["polygon"]
 
     xdai_rpc_link = "https://rpc.gnosischain.com/"
     poap_address = "0x22C1f6050E56d2876009903609a2cC3fEf83B415"
+    spork_address = "0x9CA6a77C8B38159fd2dA9Bd25bc3E259C33F5E39"
 
     # initializing the class and calling parse
     scrapper = PoapScrapper(
         eth_rpc_url=eth_provider_url,
         xdai_rpc_url=xdai_rpc_link,
+        polygon_rpc_url=polygon_provider_url,
         poap_contract_address=poap_address,
+        spork_token_address=spork_address,
     )
 
-    scrapper.parse()
+    scrapper.set_endpoints()
+    scrapper.set_all_contracts()
+    scrapper.get_spork_token_holders()
+
+    # scrapper.parse()
 
 
 if __name__ == "__main__":
