@@ -17,6 +17,7 @@ class PoapScrapper:
         polygon_rpc_url: str,
         poap_contract_address: str,
         spork_token_address: str,
+        bufficorn_contract_address: str,
     ):
 
         self.eth_rpc_url = eth_rpc_url
@@ -24,6 +25,7 @@ class PoapScrapper:
         self.polygon_rpc_url = polygon_rpc_url
         self.poap_contract_addrress = poap_contract_address
         self.spork_token_address = spork_token_address
+        self.bufficorn_contract_address = bufficorn_contract_address
 
     def parse(self):
         print(" ### Starting POAP data gathering..(might take some time)  ### \n")
@@ -39,6 +41,7 @@ class PoapScrapper:
         self.get_token_data()
         self.get_event_data()
         self.get_spork_token_holders()
+        self.get_bufficorns_minters()
 
         # saving files as json on (root)/analysis/
 
@@ -67,6 +70,12 @@ class PoapScrapper:
         )
         with open(spork_holders_file_destiny_path, "w") as outfile:
             json.dump(self.spork_token_balances, outfile)
+
+        bufficorn_minters_file_destiny_path = os.path.join(
+            os.getcwd(), "analysis/datasets/bufficorn_minters.json"
+        )
+        with open(bufficorn_minters_file_destiny_path, "w") as outfile:
+            json.dump(self.bufficorn_minters, outfile)
 
         print("Done. :)")
 
@@ -131,9 +140,10 @@ class PoapScrapper:
         print("Finished gathering event data. \n")
 
     def get_spork_token_holders(self):
+        print("\nGetting all the SPORK holders balances.")
         all_balances = []
 
-        transfer_logs = utils.fetch_erc20_transfer_logs(self.spork_token_contract)
+        transfer_logs = utils.fetch_transfer_logs(self.spork_token_contract)
         zerox = "0x0000000000000000000000000000000000000000"
 
         checked_addresses = []
@@ -159,7 +169,29 @@ class PoapScrapper:
 
         self.spork_token_balances = all_balances
 
+        print("Done with SPORK holders. \n ")
+
         return token_balances
+
+    def get_bufficorns_minters(self):
+        print("\nGetting all the BUFFINCORNS minters balances.")
+        all_minters = []
+
+        transfer_logs = utils.fetch_transfer_logs(self.bufficorn_contract)
+        zerox = "0x0000000000000000000000000000000000000000"
+
+        for transfer in transfer_logs:
+            minter = {}
+            if transfer["from"] == zerox:
+                minter["bufficorn_minter_address"] = transfer["to"]
+                minter["bufficorn_token_id"] = transfer["tokenId"]
+                all_minters.append(minter)
+
+        self.bufficorn_minters = all_minters
+
+        print("Done with buffies. ")
+
+        return all_minters
 
     def set_endpoints(self):
         """
@@ -198,6 +230,9 @@ class PoapScrapper:
         """
         poap_abi_path = os.path.join(os.getcwd(), "data_gather/abi/poap_abi.json")
         erc20_abi_path = os.path.join(os.getcwd(), "data_gather/abi/erc20_abi.json")
+        bufficorn_abi_path = os.path.join(
+            os.getcwd(), "data_gather/abi/bufficorn_abi.json"
+        )
 
         # POAP contract happens to have the same address in both chains..
         self.poap_contract_eth = self.create_contract_instance(
@@ -218,6 +253,12 @@ class PoapScrapper:
             abi_path=erc20_abi_path,
         )
 
+        self.bufficorn_contract = self.create_contract_instance(
+            web3_provider=self.w3e,
+            contract_address=self.bufficorn_contract_address,
+            abi_path=bufficorn_abi_path,
+        )
+
         assert (
             type(self.poap_contract_eth.functions.name().call()) == str
         ), "Problem initializing POAP eth contract."
@@ -227,6 +268,10 @@ class PoapScrapper:
 
         assert (
             type(self.spork_token_contract.functions.symbol().call()) == str
+        ), "Problem initializing SPORK token contract."
+
+        assert (
+            type(self.bufficorn_contract.functions.symbol().call()) == str
         ), "Problem initializing SPORK token contract."
 
     # Thought I would need to query contracts, in the end
@@ -253,6 +298,7 @@ def main():
     xdai_rpc_link = "https://rpc.gnosischain.com/"
     poap_address = "0x22C1f6050E56d2876009903609a2cC3fEf83B415"
     spork_address = "0x9CA6a77C8B38159fd2dA9Bd25bc3E259C33F5E39"
+    bufficorn_contract_address = "0x1e988ba4692e52Bc50b375bcC8585b95c48AaD77"
 
     # initializing the class and calling parse
     scrapper = PoapScrapper(
@@ -261,6 +307,7 @@ def main():
         polygon_rpc_url=polygon_provider_url,
         poap_contract_address=poap_address,
         spork_token_address=spork_address,
+        bufficorn_contract_address=bufficorn_contract_address,
     )
 
     scrapper.parse()
