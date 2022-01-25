@@ -1,3 +1,5 @@
+from tabnanny import check
+from black import token
 import pandas as pd
 from web3 import Web3
 import requests
@@ -39,6 +41,7 @@ class PoapScrapper:
 
         self.get_token_data()
         self.get_event_data()
+        self.get_spork_token_holders()
 
         # saving files as json on (root)/analysis/
 
@@ -61,6 +64,12 @@ class PoapScrapper:
         )
         with open(events_file_destiny_path, "w") as outfile:
             json.dump(self.event_data, outfile)
+
+        spork_holders_file_destiny_path = os.path.join(
+            os.getcwd(), "analysis/datasets/spork_holders_balance.json"
+        )
+        with open(spork_holders_file_destiny_path, "w") as outfile:
+            json.dump(self.spork_token_balances, outfile)
 
         print("Done. :)")
 
@@ -123,6 +132,31 @@ class PoapScrapper:
         self.event_data = j
 
         print("Finished gathering event data. \n")
+
+    def get_spork_token_holders(self):
+        token_balances = {}
+
+        transfer_logs = utils.fetch_erc20_transfer_logs(self.spork_token_contract)
+        zerox = "0x0000000000000000000000000000000000000000"
+
+        checked_addresses = []
+        for transfer in transfer_logs:
+            if transfer["from"] != zerox and transfer["from"] not in checked_addresses:
+                balance = self.spork_token_contract.functions.balanceOf(
+                    transfer["from"]
+                ).call()
+                token_balances[transfer["from"]] = balance
+                checked_addresses.append(transfer["from"])
+            if transfer["to"] != zerox and transfer["to"] not in checked_addresses:
+                balance = self.spork_token_contract.functions.balanceOf(
+                    transfer["to"]
+                ).call()
+                token_balances[transfer["to"]] = balance
+                checked_addresses.append(transfer["to"])
+
+        self.spork_token_balances = token_balances
+
+        return token_balances
 
     # Thought I would need to query contracts, in the end
     # it was not necessary, but will leave it here.
@@ -192,9 +226,6 @@ class PoapScrapper:
             type(self.poap_contract_xdai.functions.name().call()) == str
         ), "Problem initializing POAP xdai contract."
 
-    def get_spork_token_holders(self):
-        print(self.spork_token_contract.functions.symbol().call())
-
     # Thought I would need to query contracts, in the end
     # it was not necessary, but will leave it here.
     def get_event_emitter_logs(self):
@@ -231,7 +262,7 @@ def main():
 
     scrapper.set_endpoints()
     scrapper.set_all_contracts()
-    scrapper.get_spork_token_holders()
+    print(scrapper.get_spork_token_holders())
 
     # scrapper.parse()
 

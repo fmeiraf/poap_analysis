@@ -131,3 +131,13 @@ def fetch_log_history(contract: web3.contract):
     event_data = [ev["args"] for ev in events]
 
     return event_data
+
+
+def fetch_erc20_transfer_logs(contract: web3.contract):
+    """Fetch all trading pairs on Uniswap"""
+    events = list(fetch_events(contract.events.Transfer, from_block=0))
+    print("Got all event history.", len(events), "events")
+
+    event_data = [ev["args"] for ev in events]
+
+    return event_data
