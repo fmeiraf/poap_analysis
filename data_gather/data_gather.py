@@ -148,30 +148,34 @@ class PoapScrapper:
 
         checked_addresses = []
         for transfer in transfer_logs:
-            token_balances = {}
+
             if transfer["from"] != zerox and transfer["from"] not in checked_addresses:
                 balance = self.spork_token_contract.functions.balanceOf(
                     transfer["from"]
                 ).call()
+                token_balances = {}
 
                 token_balances["token_holder_address"] = transfer["from"]
                 token_balances["token_holder_balance"] = balance
                 all_balances.append(token_balances)
                 checked_addresses.append(transfer["from"])
+
             if transfer["to"] != zerox and transfer["to"] not in checked_addresses:
                 balance = self.spork_token_contract.functions.balanceOf(
                     transfer["to"]
                 ).call()
 
+                token_balances = {}
                 token_balances["token_holder_address"] = transfer["to"]
                 token_balances["token_holder_balance"] = balance
+                all_balances.append(token_balances)
                 checked_addresses.append(transfer["to"])
 
         self.spork_token_balances = all_balances
 
         print("Done with SPORK holders. \n ")
 
-        return token_balances
+        return all_balances
 
     def get_bufficorns_minters(self):
         print("\nGetting all the BUFFINCORNS minters balances.")
