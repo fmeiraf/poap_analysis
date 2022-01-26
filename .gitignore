@@ -192,5 +192,6 @@ cython_debug/
     Blog
     About
 
+.DS_Store
 eth_rpc.yaml
 analysis/datasets
