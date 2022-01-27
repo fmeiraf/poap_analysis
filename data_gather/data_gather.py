@@ -1,6 +1,3 @@
-from tabnanny import check
-from black import token
-import pandas as pd
 from web3 import Web3
 import requests
 import yaml
@@ -16,70 +13,35 @@ class PoapScrapper:
         xdai_rpc_url: str,
         polygon_rpc_url: str,
         poap_contract_address: str,
-        spork_token_address: str,
-        bufficorn_contract_address: str,
     ):
 
         self.eth_rpc_url = eth_rpc_url
         self.xdai_rpc_url = xdai_rpc_url
         self.polygon_rpc_url = polygon_rpc_url
         self.poap_contract_addrress = poap_contract_address
-        self.spork_token_address = spork_token_address
-        self.bufficorn_contract_address = bufficorn_contract_address
 
     def parse(self):
         print(" ### Starting POAP data gathering..(might take some time)  ### \n")
+
         # calling setters
 
         if not self.set_endpoints():
             raise ValueError("There was a problem setting the endpoints")
 
-        self.set_all_contracts()
-
         # calling getters and storing in memory
 
-        self.get_token_data()
-        self.get_event_data()
-        self.get_spork_token_holders()
-        self.get_bufficorns_minters()
+        # self.get_poap_token_data()
+        # self.get_poap_event_data()
+        # self.get_bufficorns_minters()
+        self.get_all_erc20s_holder_balance()
 
         # saving files as json on (root)/analysis/
 
         print("Saving files on (root)/analysis..")
 
-        eth_file_destiny_path = os.path.join(
-            os.getcwd(), "analysis/datasets/ethereum_token_data.json"
-        )
-        with open(eth_file_destiny_path, "w") as outfile:
-            json.dump(self.eth_token_data, outfile)
-
-        xdai_file_destiny_path = os.path.join(
-            os.getcwd(), "analysis/datasets/xdai_token_data.json"
-        )
-        with open(xdai_file_destiny_path, "w") as outfile:
-            json.dump(self.xdai_token_data, outfile)
-
-        events_file_destiny_path = os.path.join(
-            os.getcwd(), "analysis/datasets/event_data.json"
-        )
-        with open(events_file_destiny_path, "w") as outfile:
-            json.dump(self.event_data, outfile)
-
-        spork_holders_file_destiny_path = os.path.join(
-            os.getcwd(), "analysis/datasets/spork_holders_balance.json"
-        )
-        with open(spork_holders_file_destiny_path, "w") as outfile:
-            json.dump(self.spork_token_balances, outfile)
-
-        bufficorn_minters_file_destiny_path = os.path.join(
-            os.getcwd(), "analysis/datasets/bufficorn_minters.json"
-        )
-        with open(bufficorn_minters_file_destiny_path, "w") as outfile:
-            json.dump(self.bufficorn_minters, outfile)
-
         print("Done. :)")
 
-    def get_token_data(self, page_size: int = 900):
+    def get_poap_token_data(self, page_size: int = 900):
         """
         Get all the tokens from both chains using graphql
 
@@ -110,22 +72,32 @@ class PoapScrapper:
                 }
             }
         """
-        print("Getting ethereum mainnet subgraph data.")
-        self.eth_token_data = utils.extract_all_tokens_from_subgraph(
+        print("Getting ethereum POAP mainnet subgraph data.")
+        eth_token_data = utils.extract_all_tokens_from_subgraph(
             query=query,
             subgraph_api_url=eth_subgraph,
             page_size=page_size,
         )
 
-        print("Getting xdai subgraph data.")
-        self.xdai_token_data = utils.extract_all_tokens_from_subgraph(
+        self.export_to_json_file(
+            content_to_export=eth_token_data,
+            filename_without_extension="poap_ethereum_token_data",
+        )
+
+        print("Getting POAP xdai subgraph data.")
+        xdai_token_data = utils.extract_all_tokens_from_subgraph(
             query=query,
             subgraph_api_url=xdai_subgraph,
             page_size=page_size,
             verbose=True,
         )
 
-    def get_event_data(self):
+        self.export_to_json_file(
+            content_to_export=xdai_token_data,
+            filename_without_extension="poap_xdai_token_data",
+        )
+
+    def get_poap_event_data(self):
         print("Getting event data..")
         poap_event_api_url = "https://api.poap.xyz/events"
         req = requests.get(poap_event_api_url)
@@ -135,53 +107,57 @@ class PoapScrapper:
 
         j = json.loads(req.text)
 
-        self.event_data = j
+        self.export_to_json_file(
+            content_to_export=j,
+            filename_without_extension="poap_event_data.json",
+        )
 
-        print("Finished gathering event data. \n")
+        print("Finished gathering POAP event data. \n")
 
-    def get_spork_token_holders(self):
-        print("\nGetting all the SPORK holders balances.")
-        all_balances = []
+    def get_all_erc20s_holder_balance(self):
 
-        transfer_logs = utils.fetch_transfer_logs(self.spork_token_contract)
-        zerox = "0x0000000000000000000000000000000000000000"
+        tokens_to_scrappe = [
+            (self.w3p, "0x9CA6a77C8B38159fd2dA9Bd25bc3E259C33F5E39"),  # polygon:Spork
+            (
+                self.w3e,
+                "0xD56daC73A4d6766464b38ec6D91eB45Ce7457c44",  # ethereum:PANvala
+            ),
+            (
+                self.w3e,
+                "0xDe30da39c46104798bB5aA3fe8B9e0e1F348163F",  # ethereum:gitcoin
+            ),
+            (self.w3e, "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72"),  # ethereum:ens
+            (
+                self.w3x,
+                "0xc4fbE68522ba81a28879763C3eE33e08b13c499E",  # xdai:common stack
+            ),
+        ]
 
-        checked_addresses = []
-        for transfer in transfer_logs:
+        for token in tokens_to_scrappe[1:]:
+            token_holder_data, token_symbol = self.scrappe_erc20token_holders_balance(
+                web3_provider=token[0],
+                contract_address=token[1],
+                abi_path="data_gather/abi/erc20_abi.json",
+            )
 
-            if transfer["from"] != zerox and transfer["from"] not in checked_addresses:
-                balance = self.spork_token_contract.functions.balanceOf(
-                    transfer["from"]
-                ).call()
-                token_balances = {}
-
-                token_balances["token_holder_address"] = transfer["from"]
-                token_balances["token_holder_balance"] = balance
-                all_balances.append(token_balances)
-                checked_addresses.append(transfer["from"])
-
-            if transfer["to"] != zerox and transfer["to"] not in checked_addresses:
-                balance = self.spork_token_contract.functions.balanceOf(
-                    transfer["to"]
-                ).call()
-
-                token_balances = {}
-                token_balances["token_holder_address"] = transfer["to"]
-                token_balances["token_holder_balance"] = balance
-                all_balances.append(token_balances)
-                checked_addresses.append(transfer["to"])
-
-        self.spork_token_balances = all_balances
-
-        print("Done with SPORK holders. \n ")
-
-        return all_balances
+            self.export_to_json_file(
+                content_to_export=token_holder_data,
+                filename_without_extension=f"{token_symbol}_token_holder",
+            )
 
     def get_bufficorns_minters(self):
         print("\nGetting all the BUFFINCORNS minters balances.")
+
+        bufficorn_contract_address = "0x1e988ba4692e52Bc50b375bcC8585b95c48AaD77"
+        contract = self.create_contract_instance(
+            web3_provider=self.w3e,
+            contract_address=bufficorn_contract_address,
+            abi_path="/data_gather/abi/bufficorn_abi.json",
+        )
+
         all_minters = []
 
-        transfer_logs = utils.fetch_transfer_logs(self.bufficorn_contract)
+        transfer_logs = utils.fetch_transfer_logs(contract)
         zerox = "0x0000000000000000000000000000000000000000"
 
         for transfer in transfer_logs:
@@ -191,7 +167,10 @@ class PoapScrapper:
                 minter["bufficorn_token_id"] = transfer["tokenId"]
                 all_minters.append(minter)
 
-        self.bufficorn_minters = all_minters
+        self.export_to_json_file(
+            content_to_export=all_minters,
+            filename_without_extension="bufficorn_minters_data",
+        )
 
         print("Done with buffies. ")
 
@@ -228,60 +207,71 @@ class PoapScrapper:
 
         return contract_instance
 
-    def set_all_contracts(self):
-        """
-        Initialize both contracts (ethereum and xDai)
-        """
-        poap_abi_path = os.path.join(os.getcwd(), "data_gather/abi/poap_abi.json")
-        erc20_abi_path = os.path.join(os.getcwd(), "data_gather/abi/erc20_abi.json")
-        bufficorn_abi_path = os.path.join(
-            os.getcwd(), "data_gather/abi/bufficorn_abi.json"
+    def export_to_json_file(
+        self,
+        content_to_export: object,
+        filename_without_extension: str,
+        dir_to_export_to: str = "analysis/datasets/",
+    ):
+
+        final_path = os.path.join(
+            os.getcwd(), dir_to_export_to, f"{filename_without_extension}.json"
+        )
+        if os.path.exists(final_path):
+            print("This file already exists ;).")
+        else:
+            with open(final_path, "w") as outfile:
+                json.dump(content_to_export, outfile)
+
+    def scrappe_erc20token_holders_balance(
+        self, web3_provider: Web3, contract_address: str, abi_path: str
+    ):
+        contract = self.create_contract_instance(
+            web3_provider=web3_provider,
+            contract_address=contract_address,
+            abi_path=abi_path,
         )
 
-        # POAP contract happens to have the same address in both chains..
-        self.poap_contract_eth = self.create_contract_instance(
-            web3_provider=self.w3e,
-            contract_address=self.poap_contract_addrress,
-            abi_path=poap_abi_path,
-        )
+        token_symbol = contract.functions.symbol().call()
 
-        self.poap_contract_xdai = self.create_contract_instance(
-            web3_provider=self.w3x,
-            contract_address=self.poap_contract_addrress,
-            abi_path=poap_abi_path,
-        )
+        all_balances = []
 
-        self.spork_token_contract = self.create_contract_instance(
-            web3_provider=self.w3p,
-            contract_address=self.spork_token_address,
-            abi_path=erc20_abi_path,
-        )
+        transfer_logs = utils.fetch_transfer_logs(contract)
+        zerox = "0x0000000000000000000000000000000000000000"
 
-        self.bufficorn_contract = self.create_contract_instance(
-            web3_provider=self.w3e,
-            contract_address=self.bufficorn_contract_address,
-            abi_path=bufficorn_abi_path,
-        )
+        print(f"\nGetting all the {token_symbol} holders balances.")
 
-        assert (
-            type(self.poap_contract_eth.functions.name().call()) == str
-        ), "Problem initializing POAP eth contract."
-        assert (
-            type(self.poap_contract_xdai.functions.name().call()) == str
-        ), "Problem initializing POAP xdai contract."
+        checked_addresses = []
+        for transfer in transfer_logs:
 
-        assert (
-            type(self.spork_token_contract.functions.symbol().call()) == str
-        ), "Problem initializing SPORK token contract."
+            if transfer["from"] != zerox or transfer["from"] not in checked_addresses:
+                token_balances = {}
 
-        assert (
-            type(self.bufficorn_contract.functions.symbol().call()) == str
-        ), "Problem initializing SPORK token contract."
+                balance = contract.functions.balanceOf(transfer["from"]).call()
+
+                token_balances["token_holder_address"] = transfer["from"]
+                token_balances["token_holder_balance"] = balance
+                all_balances.append(token_balances)
+                checked_addresses.append(transfer["from"])
+
+            if transfer["to"] != zerox or transfer["to"] not in checked_addresses:
+                token_balances = {}
+
+                balance = contract.functions.balanceOf(transfer["to"]).call()
+
+                token_balances["token_holder_address"] = transfer["to"]
+                token_balances["token_holder_balance"] = balance
+                all_balances.append(token_balances)
+                checked_addresses.append(transfer["to"])
+
+        print(f"Done with {token_symbol} holders. \n ")
+
+        return all_balances, token_symbol
 
     # Thought I would need to query contracts, in the end
     # it was not necessary, but will leave it here.
-    def get_event_emitter_logs(self):
-        print(utils.fetch_log_history(self.poap_contract_xdai))
+    # def get_event_emitter_logs(self):
+    #     print(utils.fetch_log_history(self.poap_contract_xdai))
 
 
 def main():
@@ -301,8 +291,6 @@ def main():
 
     xdai_rpc_link = "https://rpc.gnosischain.com/"
     poap_address = "0x22C1f6050E56d2876009903609a2cC3fEf83B415"
-    spork_address = "0x9CA6a77C8B38159fd2dA9Bd25bc3E259C33F5E39"
-    bufficorn_contract_address = "0x1e988ba4692e52Bc50b375bcC8585b95c48AaD77"
 
     # initializing the class and calling parse
     scrapper = PoapScrapper(
@@ -310,8 +298,6 @@ def main():
         xdai_rpc_url=xdai_rpc_link,
         polygon_rpc_url=polygon_provider_url,
         poap_contract_address=poap_address,
-        spork_token_address=spork_address,
-        bufficorn_contract_address=bufficorn_contract_address,
     )
 
     scrapper.parse()
