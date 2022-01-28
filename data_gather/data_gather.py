@@ -30,9 +30,9 @@ class PoapScrapper:
 
         # calling getters and storing in memory
 
-        # self.get_poap_token_data()
-        # self.get_poap_event_data()
-        # self.get_bufficorns_minters()
+        self.get_poap_token_data()
+        self.get_poap_event_data()
+        self.get_bufficorns_minters()
         self.get_all_erc20s_holder_balance()
 
         # saving files as json on (root)/analysis/
@@ -114,6 +114,8 @@ class PoapScrapper:
 
         print("Finished gathering POAP event data. \n")
 
+    # decided to comment out GTC and ENS once these have too many token balances
+    # it's better to query the address I am intersted in later during analysis
     def get_all_erc20s_holder_balance(self):
 
         tokens_to_scrappe = [
@@ -123,17 +125,17 @@ class PoapScrapper:
                 "0xD56daC73A4d6766464b38ec6D91eB45Ce7457c44",  # ethereum:PANvala
             ),
             (
-                self.w3e,
-                "0xDe30da39c46104798bB5aA3fe8B9e0e1F348163F",  # ethereum:gitcoin
-            ),
-            (self.w3e, "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72"),  # ethereum:ens
-            (
                 self.w3x,
                 "0xc4fbE68522ba81a28879763C3eE33e08b13c499E",  # xdai:common stack
             ),
+            # (
+            #     self.w3e,
+            #     "0xDe30da39c46104798bB5aA3fe8B9e0e1F348163F",  # ethereum:gitcoin
+            # ),
+            # (self.w3e, "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72"),  # ethereum:ens
         ]
 
-        for token in tokens_to_scrappe[1:]:
+        for token in tokens_to_scrappe:
             token_holder_data, token_symbol = self.scrappe_erc20token_holders_balance(
                 web3_provider=token[0],
                 contract_address=token[1],
@@ -231,15 +233,14 @@ class PoapScrapper:
             contract_address=contract_address,
             abi_path=abi_path,
         )
-
         token_symbol = contract.functions.symbol().call()
+
+        print(f"\nGetting all the {token_symbol} holders balances.")
 
         all_balances = []
 
-        transfer_logs = utils.fetch_transfer_logs(contract)
+        transfer_logs = utils.fetch_transfer_logs(web3_provider, contract)
         zerox = "0x0000000000000000000000000000000000000000"
-
-        print(f"\nGetting all the {token_symbol} holders balances.")
 
         checked_addresses = []
         for transfer in transfer_logs:
