@@ -194,4 +194,5 @@ cython_debug/
 
 .DS_Store
 eth_rpc.yaml
+db_credentials.yaml
 analysis/datasets
