@@ -1,4 +1,5 @@
 from web3 import Web3
+from web3.middleware import geth_poa_middleware
 import requests
 import yaml
 import os
@@ -30,9 +31,9 @@ class PoapScrapper:
 
         # calling getters and storing in memory
 
-        self.get_poap_token_data()
-        self.get_poap_event_data()
-        self.get_bufficorns_minters()
+        # self.get_poap_token_data()
+        # self.get_poap_event_data()
+        # self.get_bufficorns_minters()
         self.get_all_erc20s_holder_balance()
 
         # saving files as json on (root)/analysis/
@@ -136,7 +137,11 @@ class PoapScrapper:
         ]
 
         for token in tokens_to_scrappe:
-            token_holder_data, token_symbol = self.scrappe_erc20token_holders_balance(
+            (
+                token_holder_data,
+                token_symbol,
+                transactions_history,
+            ) = self.scrappe_erc20token_holders_balance(
                 web3_provider=token[0],
                 contract_address=token[1],
                 abi_path="data_gather/abi/erc20_abi.json",
@@ -145,6 +150,11 @@ class PoapScrapper:
             self.export_to_json_file(
                 content_to_export=token_holder_data,
                 filename_without_extension=f"{token_symbol}_token_holder",
+            )
+
+            self.export_to_json_file(
+                content_to_export=transactions_history,
+                filename_without_extension=f"{token_symbol}_transaction_history",
             )
 
     def get_bufficorns_minters(self):
@@ -184,7 +194,11 @@ class PoapScrapper:
         """
         self.w3e = Web3(Web3.HTTPProvider(self.eth_rpc_url))
         self.w3x = Web3(Web3.HTTPProvider(self.xdai_rpc_url))
+
         self.w3p = Web3(Web3.HTTPProvider(self.polygon_rpc_url))
+        self.w3p.middleware_onion.inject(
+            geth_poa_middleware, layer=0
+        )  # adding this due to errors when running getLogs
         return (
             self.w3e.isConnected() and self.w3x.isConnected() and self.w3p.isConnected()
         )
@@ -237,37 +251,29 @@ class PoapScrapper:
 
         print(f"\nGetting all the {token_symbol} holders balances.")
 
-        all_balances = []
-
         transfer_logs = utils.fetch_transfer_logs(web3_provider, contract)
         zerox = "0x0000000000000000000000000000000000000000"
 
-        checked_addresses = []
+        checked_addresses = set()
+        transaction_history = []
         for transfer in transfer_logs:
 
-            if transfer["from"] != zerox or transfer["from"] not in checked_addresses:
-                token_balances = {}
+            if transfer["from"] != zerox:
+                checked_addresses.add(transfer["from"])
 
-                balance = contract.functions.balanceOf(transfer["from"]).call()
+            if transfer["to"] != zerox:
+                checked_addresses.add(transfer["to"])
 
-                token_balances["token_holder_address"] = transfer["from"]
-                token_balances["token_holder_balance"] = balance
-                all_balances.append(token_balances)
-                checked_addresses.append(transfer["from"])
+            transaction_history.append({**transfer})
 
-            if transfer["to"] != zerox or transfer["to"] not in checked_addresses:
-                token_balances = {}
-
-                balance = contract.functions.balanceOf(transfer["to"]).call()
-
-                token_balances["token_holder_address"] = transfer["to"]
-                token_balances["token_holder_balance"] = balance
-                all_balances.append(token_balances)
-                checked_addresses.append(transfer["to"])
+        all_balances = []
+        for holder_address in checked_addresses:
+            balance = contract.functions.balanceOf(holder_address).call()
+            all_balances.append({"holder_address": holder_address, "balance": balance})
 
         print(f"Done with {token_symbol} holders. \n ")
 
-        return all_balances, token_symbol
+        return all_balances, token_symbol, transaction_history
 
     # Thought I would need to query contracts, in the end
     # it was not necessary, but will leave it here.
