@@ -31,9 +31,9 @@ class PoapScrapper:
 
         # calling getters and storing in memory
 
-        # self.get_poap_token_data()
-        # self.get_poap_event_data()
-        # self.get_bufficorns_minters()
+        self.get_poap_token_data()
+        self.get_poap_event_data()
+        self.get_bufficorns_minters()
         self.get_all_erc20s_holder_balance()
 
         # saving files as json on (root)/analysis/
