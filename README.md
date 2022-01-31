@@ -6,12 +6,12 @@ This is a bounty task from DiamondDAO to do a Data Landscape on POAPs.
 
 ## How to use the data gathering script:
 
-1. Make sure you have a file with name `eth_rpc.yaml` in the main director, with the following format:
+1. Make sure you have a file with name `eth_rpc.yaml` in the main directory, with the following format:
 
    - ethereum : "your ethereum RPC url"
    - polygon : "your polygon RPC url"
 
-2. Make sure you have a file with name `db_credentials.yaml` in the main director, with the following format (this is just for DiamondDAO members):
+2. Make sure you have a file with name `db_credentials.yaml` in the main directory, with the following format (this is just for DiamondDAO members):
 
    - dbname : "DBNAME"
    - host : "host URL"
