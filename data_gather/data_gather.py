@@ -1,10 +1,12 @@
 from web3 import Web3
 from web3.middleware import geth_poa_middleware
+import pandas as pd
 import requests
 import yaml
 import os
 import json
 import utils
+import psycopg2
 
 
 class PoapScrapper:
@@ -14,12 +16,14 @@ class PoapScrapper:
         xdai_rpc_url: str,
         polygon_rpc_url: str,
         poap_contract_address: str,
+        db_credentials: object,
     ):
 
         self.eth_rpc_url = eth_rpc_url
         self.xdai_rpc_url = xdai_rpc_url
         self.polygon_rpc_url = polygon_rpc_url
         self.poap_contract_addrress = poap_contract_address
+        self.db_credentials = db_credentials
 
     def parse(self):
         print(" ### Starting POAP data gathering..(might take some time)  ### \n")
@@ -35,10 +39,6 @@ class PoapScrapper:
         self.get_poap_event_data()
         self.get_bufficorns_minters()
         self.get_all_erc20s_holder_balance()
-
-        # saving files as json on (root)/analysis/
-
-        print("Saving files on (root)/analysis..")
 
         print("Done. :)")
 
@@ -188,6 +188,27 @@ class PoapScrapper:
 
         return all_minters
 
+    def get_chainverse_db_data(self, database_credentials: object):
+        queries_root_dir = os.path.join(
+            os.getcwd(), "data_gather/chainverse_db_queries"
+        )
+        query_files = os.listdir(queries_root_dir)
+
+        # Creating the parameters dict
+        query_repo = {}
+        for filename in query_files:
+            key = filename.split(".")[0]
+            content = os.path.join(queries_root_dir, filename)
+            query_repo[key] = content
+
+        # getting the data as a pandas Dataframe and converting to json
+        for query_name in query_repo.keys():
+            print(f"Querying Chainverse database for {query_name} \n")
+            self.get_data_from_chainverse_db(
+                database_credentials, query_repo[query_name], f"{query_name}"
+            )
+            print("..done.")
+
     def set_endpoints(self):
         """
         Set the RPC endpoints for queries
@@ -275,6 +296,30 @@ class PoapScrapper:
 
         return all_balances, token_symbol, transaction_history
 
+    def get_data_from_chainverse_db(
+        self,
+        db_credentials: object,
+        sql_query_path: str,
+        filename: str,
+        dir_to_export_to="analysis/datasets/",
+    ):
+        conn_string = f"""
+        dbname={db_credentials["dbname"]}
+        host={db_credentials["host"]}
+        port={db_credentials["port"]}
+        user={db_credentials["username"]}
+        password={db_credentials["password"]}
+        """
+        conn = psycopg2.connect(conn_string)
+
+        with open(sql_query_path, "r") as sql_content:
+            query = sql_content.read()
+
+        df = pd.read_sql_query(query, conn)
+        print(df.head())
+        final_path = os.path.join(os.getcwd(), dir_to_export_to, f"{filename}.json")
+        df.to_json(final_path, orient="records")
+
     # Thought I would need to query contracts, in the end
     # it was not necessary, but will leave it here.
     # def get_event_emitter_logs(self):
@@ -293,6 +338,15 @@ def main():
     with open(eth_yaml_path) as file:
         provider_params = yaml.load(file, Loader=yaml.FullLoader)
 
+    db_credentials_path = os.path.join(os.getcwd(), "db_credentials.yaml")
+    if not os.path.exists(db_credentials_path):
+        raise OSError(
+            "You should have a yaml file on your root directory called db_credentials.yaml! Check the README for more info"
+        )
+
+    with open(db_credentials_path) as file:
+        db_credentials = yaml.load(file, Loader=yaml.FullLoader)
+
     eth_provider_url = provider_params["ethereum"]
     polygon_provider_url = provider_params["polygon"]
 
@@ -305,9 +359,11 @@ def main():
         xdai_rpc_url=xdai_rpc_link,
         polygon_rpc_url=polygon_provider_url,
         poap_contract_address=poap_address,
+        db_credentials=db_credentials,
     )
 
-    scrapper.parse()
+    scrapper.get_chainverse_db_data(db_credentials)
+    # scrapper.parse()
 
 
 if __name__ == "__main__":
