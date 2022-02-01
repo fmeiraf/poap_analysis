@@ -39,6 +39,7 @@ class PoapScrapper:
         self.get_poap_event_data()
         self.get_bufficorns_minters()
         self.get_all_erc20s_holder_balance()
+        self.get_chainverse_db_data()
 
         print("Done. :)")
 
@@ -188,7 +189,7 @@ class PoapScrapper:
 
         return all_minters
 
-    def get_chainverse_db_data(self, database_credentials: object):
+    def get_chainverse_db_data(self):
         queries_root_dir = os.path.join(
             os.getcwd(), "data_gather/chainverse_db_queries"
         )
@@ -205,7 +206,7 @@ class PoapScrapper:
         for query_name in query_repo.keys():
             print(f"Querying Chainverse database for {query_name} \n")
             self.get_data_from_chainverse_db(
-                database_credentials, query_repo[query_name], f"{query_name}"
+                self.db_credentials, query_repo[query_name], f"{query_name}"
             )
             print("..done.")
 
@@ -362,8 +363,7 @@ def main():
         db_credentials=db_credentials,
     )
 
-    scrapper.get_chainverse_db_data(db_credentials)
-    # scrapper.parse()
+    scrapper.parse()
 
 
 if __name__ == "__main__":
