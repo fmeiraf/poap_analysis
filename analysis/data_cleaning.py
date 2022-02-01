@@ -51,6 +51,15 @@ def get_daohaus_cleaned_data():
     return dao_members_dh, dao_proposal_dh, dao_proposal_votes_dh
 
 
+def get_snapshot_cleaned_data():
+
+    snapshot_proposals = pd.read_json("datasets/snapshot_proposals.json")
+
+    snapshot_votes = pd.read_json("datasets/snapshot_votes_chainverse.json")
+
+    return snapshot_proposals, snapshot_votes
+
+
 # ## __ Work around to load bignumbers from json when using pandas __ ##
 # import pandas.io.json
 
