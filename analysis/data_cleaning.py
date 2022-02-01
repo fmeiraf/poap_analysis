@@ -60,14 +60,42 @@ def get_snapshot_cleaned_data():
     return snapshot_proposals, snapshot_votes
 
 
-# ## __ Work around to load bignumbers from json when using pandas __ ##
-# import pandas.io.json
+def get_token_holder_cleaned_data():
 
-# # monkeypatch using standard python json module
-# import json
-# pd.io.json._json.loads = lambda s, *a, **kw: json.loads(s)
-# # monkeypatch using faster simplejson module
-# import simplejson
-# pd.io.json._json.loads = lambda s, *a, **kw: simplejson.loads(s)
-# # normalising (unnesting) at the same time (for nested jsons)
-# pd.io.json._json.loads = lambda s, *a, **kw: pandas.io.json.json_normalize(simplejson.loads(s))
+    ## __ Work around to load bignumbers from json when using pandas __ ##
+    import pandas.io.json
+
+    # monkeypatch using standard python json module
+    import json
+
+    pd.io.json._json.loads = lambda s, *a, **kw: json.loads(s)
+    # monkeypatch using faster simplejson module
+    import simplejson
+
+    pd.io.json._json.loads = lambda s, *a, **kw: simplejson.loads(s)
+    # normalising (unnesting) at the same time (for nested jsons)
+    pd.io.json._json.loads = lambda s, *a, **kw: pandas.io.json.json_normalize(
+        simplejson.loads(s)
+    )
+
+    spork = pd.read_json("datasets/SPORK_token_holder.json")
+    spork["normalized_balance"] = spork["balance"] / 1e18
+
+    return spork
+
+
+## __ Work around to load bignumbers from json when using pandas __ ##
+import pandas.io.json
+
+# monkeypatch using standard python json module
+import json
+
+pd.io.json._json.loads = lambda s, *a, **kw: json.loads(s)
+# monkeypatch using faster simplejson module
+import simplejson
+
+pd.io.json._json.loads = lambda s, *a, **kw: simplejson.loads(s)
+# normalising (unnesting) at the same time (for nested jsons)
+pd.io.json._json.loads = lambda s, *a, **kw: pandas.io.json.json_normalize(
+    simplejson.loads(s)
+)
