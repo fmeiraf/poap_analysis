@@ -1,4 +1,5 @@
 import pandas as pd
+from web3 import Web3
 
 
 def get_cleaned_poap_data():
@@ -36,6 +37,11 @@ def get_cleaned_poap_data():
         raise ValueError(
             "There was a problem with merging, new dataframe has different amount of lines"
         )
+
+    # getting checkSummed addresses
+    poap["owner_id_checksum"] = poap["owner_id"].apply(
+        lambda adr: Web3.toChecksumAddress(adr)
+    )
 
     return poap
 
@@ -81,7 +87,9 @@ def get_token_holder_cleaned_data():
     spork = pd.read_json("datasets/SPORK_token_holder.json")
     spork["normalized_balance"] = spork["balance"] / 1e18
 
-    return spork
+    bufficorn_minters = pd.read_json("datasets/bufficorn_minters.json")
+
+    return spork, bufficorn_minters
 
 
 ## __ Work around to load bignumbers from json when using pandas __ ##
