@@ -43,12 +43,15 @@ def get_cleaned_poap_data():
         lambda adr: Web3.toChecksumAddress(adr)
     )
 
-    return poap
+    return poap.loc[poap.owner_id != "0x0000000000000000000000000000000000000000"]
 
 
 def get_daohaus_cleaned_data():
 
     dao_members_dh = pd.read_json("datasets/dao_member_daohaus.json")
+    dao_members_dh["address_normalized"] = dao_members_dh["address"].apply(
+        lambda adr: Web3.toChecksumAddress(adr)
+    )
 
     dao_proposal_votes_dh = pd.read_json("datasets/dao_proposal_votes_daohaus.json")
 

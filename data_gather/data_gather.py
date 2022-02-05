@@ -1,3 +1,4 @@
+from tabnanny import verbose
 from web3 import Web3
 from web3.middleware import geth_poa_middleware
 import pandas as pd
@@ -40,6 +41,7 @@ class PoapScrapper:
         self.get_bufficorns_minters()
         self.get_all_erc20s_holder_balance()
         self.get_chainverse_db_data()
+        self.get_snapshot_dao_members_data()
 
         print("Done. :)")
 
@@ -210,6 +212,41 @@ class PoapScrapper:
             )
             print("..done.")
 
+    def get_snapshot_dao_members_data(self, page_size: int = 100):
+
+        snapshot_graphql_api_url = "https://hub.snapshot.org/graphql"
+
+        query = """
+            query get_daos($skip_size: Int, $page_size: Int) {
+                spaces (first: $page_size, 
+                        skip: $skip_size,
+                        orderBy:"id",
+                        orderDirection: asc)
+                   
+                {
+                    id
+                    name
+                    about
+                    network
+                    symbol
+                    admins
+                    members
+                }
+            }
+        """
+        print("Getting snapshot DAO/space data from their graphql API.")
+        snap_spaces_data = utils.extract_snapshot_space_data(
+            query=query,
+            subgraph_api_url=snapshot_graphql_api_url,
+            page_size=page_size,
+            verbose=True,
+        )
+
+        self.export_to_json_file(
+            content_to_export=snap_spaces_data,
+            filename_without_extension=f"snapshot_spaces_members",
+        )
+
     def set_endpoints(self):
         """
         Set the RPC endpoints for queries
@@ -364,6 +401,8 @@ def main():
     )
 
     scrapper.parse()
+
+    scrapper.get_snapshot_dao_members_data()
 
 
 if __name__ == "__main__":

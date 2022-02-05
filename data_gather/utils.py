@@ -71,6 +71,76 @@ def extract_all_tokens_from_subgraph(
         pages_ran += 1
 
 
+def extract_snapshot_space_data(
+    query: str, subgraph_api_url: str, page_size: int, verbose: bool = False
+):
+
+    """
+    Extract all token data from subgraph.
+    """
+    last_pagination_number = 0
+    wait_time_seconds = 5
+    pages_ran = 0
+    extracted_data = []
+
+    print("Starting graph extraction..")
+    while True:
+        if verbose:
+            print(f"Starting page: {pages_ran}")
+
+        req = requests.post(
+            subgraph_api_url,
+            json={
+                "query": query,
+                "variables": {
+                    "page_size": page_size,
+                    "skip_size": last_pagination_number,
+                },
+            },
+        )
+
+        if req.status_code != 200:
+            print(
+                f"There was a problem with the request for last_token:{last_pagination_number}.\n Trying again in {wait_time_seconds}  seconds.. "
+            )
+            time.sleep(wait_time_seconds)
+            continue
+
+        j = json.loads(req.text)
+
+        if not j["data"]["spaces"]:
+            print("Subgraph extraction is DONE. \n")
+            return extracted_data
+
+        for space_data in j["data"]["spaces"]:
+            if space_data["members"]:
+                for member_address in space_data["members"]:
+                    extracted_data.append(
+                        {
+                            "space_id": space_data["id"],
+                            "space_name": space_data["name"],
+                            "space_about": space_data["about"],
+                            "space_network": space_data["network"],
+                            "space_symbol": space_data["symbol"],
+                            "member_address": member_address,
+                        }
+                    )
+            else:
+                extracted_data.append(
+                    {
+                        "space_id": space_data["id"],
+                        "space_name": space_data["name"],
+                        "space_about": space_data["about"],
+                        "space_network": space_data["network"],
+                        "space_symbol": space_data["symbol"],
+                        "member_address": "no_members",
+                    }
+                )
+
+        last_pagination_number += page_size
+        pages_ran += 1
+
+
 # Credits to Mikko Ohtamaa on : https://ethereum.stackexchange.com/questions/51637/get-all-the-past-events-of-the-contract
 # Thanks for the awesome code dude! :)
 def fetch_events(
