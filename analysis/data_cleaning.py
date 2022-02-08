@@ -66,7 +66,9 @@ def get_snapshot_cleaned_data():
 
     snapshot_votes = pd.read_json("datasets/snapshot_votes_chainverse.json")
 
-    return snapshot_proposals, snapshot_votes
+    snapshot_creation = pd.read_json("datasets/snapshot_spaces_members.json")
+
+    return snapshot_proposals, snapshot_votes, snapshot_creation
 
 
 def get_token_holder_cleaned_data():
