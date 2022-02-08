@@ -54,8 +54,14 @@ def get_daohaus_cleaned_data():
     )
 
     dao_proposal_votes_dh = pd.read_json("datasets/dao_proposal_votes_daohaus.json")
+    dao_proposal_votes_dh["address_normalized"] = dao_proposal_votes_dh[
+        "member_address"
+    ].apply(lambda adr: Web3.toChecksumAddress(adr))
 
     dao_proposal_dh = pd.read_json("datasets/dao_proposals_daohaus.json")
+    dao_proposal_dh["applicant_normalized"] = dao_proposal_dh["applicant"].apply(
+        lambda adr: Web3.toChecksumAddress(adr)
+    )
 
     return dao_members_dh, dao_proposal_dh, dao_proposal_votes_dh
 

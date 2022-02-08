@@ -402,8 +402,6 @@ def main():
 
     scrapper.parse()
 
-    scrapper.get_snapshot_dao_members_data()
-
 
 if __name__ == "__main__":
     main()
