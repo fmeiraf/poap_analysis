@@ -20,6 +20,8 @@ For more detailed information on the calculations and data for this summary chec
 
 # Analysis
 
+_To mark a wallet as an ETH Denver attendee I considered: POAP mints, SPORK token holdings and Bufficorn mintings_.
+
 ## POAP minting
 
 The number of new unique wallets (which we could in some sense assume as number of attendees, but with caution because people might have 2+ wallets) have sky rocketed on 2021, as well as the number of tokens minted.
