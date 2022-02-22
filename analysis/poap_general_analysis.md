@@ -19,7 +19,7 @@ For more details check: POAP users data [here](./poap_user_analysis.ipynb).
 
 # Most interesting findings
 
-- [##1](##-2021:-the-POAP-explosion): 85% of ALL the events created in the POAP platform were creted during 2021.
+- [##1](##-2021:-the-POAP-explosion): 85% of ALL the events created in the POAP platform were created during 2021.
 
 - [##2](##-2021:-the-POAP-explosion): ETH price seems to be fair predictor variable for the number of tokens minted.
 
