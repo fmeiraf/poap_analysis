@@ -4,8 +4,8 @@ This is a bounty task from DiamondDAO to do a Data Landscape on POAPs.
 
 ## Results
 
-ETH Denver analysis: [here](./analysis/ETH_Denver_analysis.md)
-POAP General analysis: [here](./analysis/poap_general_analysis.md)
+- ETH Denver analysis: [here](./analysis/ETH_Denver_analysis.md)
+- POAP General analysis: [here](./analysis/poap_general_analysis.md)
 
 ## How to use the data gathering script:
 
