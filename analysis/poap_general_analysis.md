@@ -33,6 +33,12 @@ For more details check: POAP users data [here](./poap_user_analysis.ipynb).
 
 - [##7](###Most-popular-events-and-the-NFT-boom) NFT related events have on average 38% more mints than the non-NFT ones.
 
+- [##8](###Events-as-a-DAO-activity-catalyzer) The higher the number of events attended, higher the chance of the attendee to be in a DAO.
+
+- [##9](###Events-as-a-DAO-activity-catalyzer) More events attended translate into more DAO memberships - but do not translate into more DAO activity.
+
+- [##10](###Events-as-a-DAO-activity-catalyzer) DAO acitivity of attendees increases 27% after their first event.
+
 ## 2021: the POAP explosion
 
 2021 is a total game-changer for the POAP platform: **85% of ALL the events created in the POAP platform were created during 2021**.
@@ -85,6 +91,50 @@ The other interesting aspect about the NFT role as an onboarding tool is that it
 
 This comes as one more argument that NFTs might have been a very an important attraction point to the POAP ecosystem. In fact if we compare the average number of mints (that could be considered as a proxy for attendees) for NFT and non-NFT related events **NFT events have on average 38% more mints than the non-NFT ones** (_statistically significant for t-test with p-value < 1%_).
 
+## Events as a DAO activity catalyzer
+
+The first interesting thing to notice when we start connecting POAP/event data with DAO activity data (votes and proposals on-chain), is that **wallets with higher volume of POAPs minted (so more active on events) are more likely to be DAO members**:
+
+![Most popular events](./images/poap_general/dao_particip.png)
+
+A very similar scenario happens when we consider any DAO activity (votes and/or proposal creation):
+
+![Most popular events](./images/poap_general/dao_act.png)
+
+Although, when we start going further into looking for relationships between event participation and DAO participation, we can see that **more events attended doesn't translate into more DAO activity** (_Pearson coef of 0.107 with p-value < 1%_)..
+
+![Most popular events](./images/poap_general/scatter_dao_act.png)
+
+But, we can say with a fair confidence that **the more events people attend, the higher the amount of DAOs they are involved in** (_Pearson coef of 0.764 with p-value < 1%_).
+
+![Most popular events](./images/poap_general/scatter_dao_part.png)
+
+Another interesting effect of the event attendance on DAO's activity is the change that happens after the first event attended. We can see from the table below that in general **event attendees increase their DAO participation in 27% after the first event attended - regardless of the type.** Another interesting thing is that it doesn't seem presencial events have and edge on virtual events - although it's important to mention that 85% of the events were create in 2021 during a pandemic that restricted a lot the amount of presencial events.
+
+| Event Type / Moment                                                    | Before | After | Activity Lift |
+| ---------------------------------------------------------------------- | ------ | ----- | ------------- |
+| After first event - when it was presencial                             | 6.97   | 7.75  | +11%          |
+| After first event - when it was virtual                                | 5.25   | 7.05  | +34%          |
+| After the first event regardless of what it was                        | 5.70   | 7.29  | +27%          |
+| After first presencial event (regardless if this was the first or not) | 7.28   | 8.63  | +18%          |
+| After first virtual event (regardless if this was the first or not)    | 5.58   | 6.98  | +25%          |
+
+_Before and After refers to average number of votes + proposals per wallet_
+
+_PS: the same data for DAO membership would be nice but there is more to be done on data gathering scripts to achieve this_.
+
+## DAOs with the most engagement per member
+
+More as curiosity, I also created some event attending ranks for DAOs. Without controlling for DAO size (top 10):
+
+![Most popular events](./images/poap_general/top_dao_events.png)
+_Number of unique events attended by DAO members_
+
+If we control for DAO size things change a lot but are more exposed to high variance (I decided to limit for DAOs with at least 10 members, but could be a different number here):
+
+![Most popular events](./images/poap_general/top_dao_controlled.png)
+_Number of unique events attended by DAO members_
+
 ## Other topics explored - but with no success
 
-- DAO relationship: this is the part that becomes difficult once we don't have issuer identification. It's hard to associate events to DAOs only using names, descriptions and URLs. I personally tried all these approaches but none of them showed satisfactory results.
+- DAO as issuers: this is the part that becomes difficult once we don't have issuer identification. It's hard to associate events to DAOs only using names, descriptions and URLs. I personally tried all these approaches but none of them showed satisfactory results.
