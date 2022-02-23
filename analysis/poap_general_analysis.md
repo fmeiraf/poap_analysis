@@ -37,7 +37,7 @@ For more details check: POAP users data [here](./poap_user_analysis.ipynb).
 
 - [##9](###Events-as-a-DAO-activity-catalyzer) More events attended translate into more DAO memberships - but do not translate into more DAO activity.
 
-- [##10](###Events-as-a-DAO-activity-catalyzer) DAO acitivity of attendees increases 27% after their first event.
+- [##10](###Events-as-a-DAO-activity-catalyzer) DAO activity of attendees increases 27% after their first event.
 
 ## 2021: the POAP explosion
 
